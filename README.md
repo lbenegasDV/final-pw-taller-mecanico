@@ -1,66 +1,89 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Final Producción Web – Sistema de Gestión de Taller Mecánico
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Aplicación web desarrollada en **Laravel** como trabajo final de la materia **Producción Web**.  
+El sistema permite gestionar clientes, vehículos, mecánicos, órdenes de reparación, repuestos utilizados e historial de trabajo, aplicando el patrón **MVC**, **Eloquent ORM** y buenas prácticas de desarrollo.
 
-## About Laravel
+## Tecnologías
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- PHP 8.2
+- Laravel 10
+- MySQL
+- Tailwind CSS (a través de Breeze / stack de auth)
+- Blade Templates
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Funcionalidades principales
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+### Clientes
+- ABM de clientes.
+- Validación de **DNI único** y **email único**.
+- Campo `activo` para deshabilitar clientes.
+- Los clientes se vinculan a sus vehículos.
 
-## Learning Laravel
+### Vehículos
+- ABM de vehículos.
+- Campos: cliente, marca, modelo, año, patente, tipo, activo.
+- Validación de **patente única** y **año ≥ 1980**.
+- Solo vehículos activos pueden recibir órdenes.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+### Mecánicos
+- ABM de mecánicos (solo admin).
+- Campos: nombre, apellido, email, teléfono, especialidad, activo.
+- Solo mecánicos activos pueden asignarse a órdenes.
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+### Órdenes de reparación
+- Asociación a vehículo y mecánico.
+- Estados: `pendiente`, `en_proceso`, `finalizada`, `cancelada`.
+- Reglas de negocio:
+  - No se asignan órdenes a vehículos o mecánicos inactivos.
+  - `fecha_estimada_entrega > fecha_ingreso`.
+  - Una sola **orden activa por vehículo**.
+  - Máximo **5 órdenes activas por mecánico**.
+  - Órdenes finalizadas requieren `costo_final` y `fecha_salida`.
+  - Órdenes canceladas no pueden modificarse.
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### Repuestos
+- ABM de repuestos (solo admin).
+- Código interno único.
+- Validación de stock no negativo y precio > 0.
+- Tipos (enum): motor, electrónica, frenos, suspensión, otros.
 
-## Laravel Sponsors
+### Repuestos utilizados (pivot)
+- Asociación entre órdenes y repuestos.
+- Validaciones:
+  - Solo órdenes `pendiente` o `en_proceso` pueden agregar repuestos.
+  - No se puede usar más stock del disponible.
+  - Un repuesto no puede repetirse en la misma orden (`orden_id + repuesto_id` único).
+- Actualización automática de stock al agregar, editar o eliminar repuestos utilizados.
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+### Historial de trabajo
+- Registro de actividades por orden.
+- Campos: orden, mecánico, descripción, horas trabajadas, fecha.
+- Solo se puede cargar historial cuando la orden está `en_proceso`.
+- El mecánico asignado (o el admin) carga y gestiona el historial.
 
-### Premium Partners
+### Usuarios y roles
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+Tabla `users` con campo `rol`:
 
-## Contributing
+- `admin`: gestiona usuarios, mecánicos, repuestos, vehículos y órdenes.
+- `recepcionista`: registra clientes, vehículos y órdenes, y gestiona repuestos utilizados.
+- `mecanico`: ve sus órdenes asignadas, carga historial de trabajo y actualiza el estado de sus órdenes.
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Usuarios de prueba (creados con `php artisan migrate --seed`):
 
-## Code of Conduct
+- Admin: `admin@taller.test` / `password`
+- Recepcionista: `recepcion@taller.test` / `password`
+- Mecánico: `mecanico@taller.test` / `password`
+---
+### 📝 Notas
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+- El sistema utiliza el patrón **MVC** de Laravel y relaciones entre modelos mediante **Eloquent ORM**.
+- Las vistas se estructuran con **layouts Blade** y **componentes reutilizables**.
+- Las validaciones se realizan del lado del servidor, aprovechando las **reglas de validación de Laravel**.
 
-## Security Vulnerabilities
+---
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+**Alumno:** Benegas Héctor Leonardo  
+**Comisión:** ACN3BV  
+**Profesor:** Calderón Nicolás Ariel
 
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
